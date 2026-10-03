@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *)); /* light only: dark: variants in older files stay off */
+
+:root { color-scheme: light; --ink: #000; }
+html { background: #fff4d6; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  color: #000;
+  background-color: #fff4d6;
+  background-image: radial-gradient(rgba(0,0,0,.16) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+}
+::selection { background: #ff6b9d; color: #000; }
+
+/* Neobrutalist primitives: hard black outlines and offset shadows, no blur. */
+.nb-shadow { box-shadow: 6px 6px 0 0 #000; }
+.nb-shadow-sm { box-shadow: 3px 3px 0 0 #000; }
+.nb-shadow-lg { box-shadow: 10px 10px 0 0 #000; }
+.nb-btn {
+  border: 2px solid #000;
+  font-weight: 800;
+  box-shadow: 4px 4px 0 0 #000;
+  transition: transform 80ms, box-shadow 80ms;
+  cursor: pointer;
+}
+.nb-btn:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 0 #000; }
+.nb-btn:active:not(:disabled) { transform: translate(4px, 4px); box-shadow: 0 0 0 0 #000; }
+.nb-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* Compare and Eye lab still use older utility classes; bring them in line. */
+[class*="border-stone-"] { border-color: #000; border-width: 2px; }
+[class*="rounded-"]:not([class*="rounded-full"]) { border-radius: 0; }
+button:not(.nb-btn):not([role="switch"]):not([aria-pressed]) { border: 2px solid #000; font-weight: 700; }
+
+/* Gaze path playback: lines draw in, dots pop in, both staggered by --d. */
+.gaze-seg { stroke-dasharray: 1; stroke-dashoffset: 1; animation: gaze-draw 500ms ease-out forwards; animation-delay: var(--d); }
+.gaze-dot { opacity: 0; transform-box: fill-box; transform-origin: center; animation: gaze-pop 380ms cubic-bezier(.2,1.4,.4,1) forwards; animation-delay: var(--d); }
+@keyframes gaze-draw { to { stroke-dashoffset: 0; } }
+@keyframes gaze-pop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .gaze-seg, .gaze-dot { animation-duration: 1ms; animation-delay: 0ms; } }

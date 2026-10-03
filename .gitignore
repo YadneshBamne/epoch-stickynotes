@@ -1,0 +1,28 @@
+﻿# secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets.*
+credentials*.json
+
+# deps / build
+.venv/
+venv/
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# local data / logs / os
+*.db
+*.sqlite*
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
