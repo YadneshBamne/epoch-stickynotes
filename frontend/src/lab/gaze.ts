@@ -234,13 +234,10 @@ export function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
-/** 13 calibration dots in a snaking order (short eye movements between neighbours). */
+/** 6 calibration dots (3 x 2 grid spanning the screen) in a snaking order (short eye movements between neighbours). */
 export const CALIBRATION_POINTS: Point[] = [
-  { x: 0.08, y: 0.1 }, { x: 0.5, y: 0.1 }, { x: 0.92, y: 0.1 },
-  { x: 0.7, y: 0.3 }, { x: 0.3, y: 0.3 },
-  { x: 0.08, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: 0.92, y: 0.5 },
-  { x: 0.7, y: 0.7 }, { x: 0.3, y: 0.7 },
-  { x: 0.92, y: 0.9 }, { x: 0.5, y: 0.9 }, { x: 0.08, y: 0.9 },
+  { x: 0.08, y: 0.15 }, { x: 0.5, y: 0.15 }, { x: 0.92, y: 0.15 },
+  { x: 0.92, y: 0.85 }, { x: 0.5, y: 0.85 }, { x: 0.08, y: 0.85 },
 ];
 
 /** 5 validation targets, deliberately different from the calibration dots so the check is honest. */

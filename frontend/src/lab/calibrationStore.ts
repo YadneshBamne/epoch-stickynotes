@@ -3,7 +3,7 @@
 import type { Affine } from "./calibrationMath";
 
 export const STORAGE_KEY = "eyelab.calibration.v1";
-export const MAX_AGE_MS = 30 * 24 * 3600 * 1000; // a month: faces, rooms and chairs change
+export const MAX_AGE_MS = 90 * 24 * 3600 * 1000; // three months: so it is not asked for again soon
 const VIEWPORT_TOLERANCE = 0.03; // saved mapping is in screen pixels, so the screen/window must match
 
 export interface EyeSample { patch: { data: ArrayLike<number> }; width: number; height: number; imagex?: number; imagey?: number }

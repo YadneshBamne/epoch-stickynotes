@@ -4,18 +4,22 @@ import GazeBlob from "./GazeBlob";
 import { CALIBRATION_POINTS, VALIDATION_POINTS, type GazeSource } from "./gaze";
 import type { CalibrationOutcome } from "./useTracker";
 
-const SAMPLES_PER_DOT = 16; // continuous training while the eyes rest on the dot: far more data than a few clicks
+const SAMPLES_PER_DOT = 24; // continuous training while the eyes rest on the dot: far more data than a few clicks (more per dot since there are only 6 dots)
 const SAMPLE_EVERY_MS = 70;
 const SETTLE_MS = 600;
 const MEASURE_MS = 1000;
-const MIN_VALID = 8;
+const MIN_VALID = 4; // gaze readings needed at a check point (about a tenth of a second of tracking)
+const DOT_TIMEOUT_MS = 5000; // how long one click may take to collect its samples
+const MIN_GOOD_PER_DOT = 3; // samples needed for a dot to count
+const MAX_MISSES = 2; // after this many failed tries a dot is skipped instead of blocking the whole calibration
+const MIN_CHECK_POINTS = 4; // the accuracy check still works if one of the 5 points could not be read
 
 type Phase = "intro" | "dots" | "validate" | "result";
 const overlay = "fixed inset-0 z-50 flex flex-col items-center justify-center bg-black text-white";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * mode "full":  13 training dots (look at each, click once, hold your gaze) then a 5-point accuracy check.
+ * mode "full":  6 training dots (look at each, click once, hold your gaze) then a 5-point accuracy check.
  * mode "check": only the 5-point check, which also re-fits the correction, so small changes in how you sit are absorbed
  *               without repeating the whole calibration.
  */
@@ -29,6 +33,8 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
   const [progress, setProgress] = useState(0);
   const [valIdx, setValIdx] = useState(0);
   const [valMsg, setValMsg] = useState("");
+  const [hint, setHint] = useState("");
+  const misses = useRef<number[]>([]);
   const [outcome, setOutcome] = useState<(CalibrationOutcome & { persisted: boolean; failed: number; unusable?: boolean; poor?: boolean }) | null>(null);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -46,7 +52,7 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2; // train on the dot's centre, not on where the cursor was
     let good = 0;
     const t0 = performance.now();
-    while (alive.current && good < SAMPLES_PER_DOT && performance.now() - t0 < 3500) {
+    while (alive.current && good < SAMPLES_PER_DOT && performance.now() - t0 < DOT_TIMEOUT_MS) {
       if (source.train(cx, cy)) good++; // true only when the tracker really saw the eyes
       setProgress(good / SAMPLES_PER_DOT);
       await sleep(SAMPLE_EVERY_MS);
@@ -54,7 +60,12 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
     if (!alive.current) return;
     setCollecting(false);
     setProgress(0);
-    if (good < 6) return; // face was lost: the same dot stays up so it can be redone
+    if (good < MIN_GOOD_PER_DOT) { // face was lost: the same dot stays up so it can be redone...
+      misses.current[idx] = (misses.current[idx] ?? 0) + 1;
+      if (misses.current[idx] < MAX_MISSES) { setHint("Could not see your eyes well. Face the camera and click the dot again."); return; }
+      // ...but never trap the person on one dot: after a couple of tries move on (the accuracy check still judges the result)
+    }
+    setHint("");
     if (idx + 1 < CALIBRATION_POINTS.length) setIdx(idx + 1);
     else setPhase("validate");
   }, [collecting, idx, source]);
@@ -84,7 +95,7 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
         targets.push(target);
       }
       if (cancelled) return;
-      if (failed > 0 || preds.length < 5) {
+      if (preds.length < MIN_CHECK_POINTS) {
         setOutcome({ ok: false, rawErrorPx: NaN, errorPx: NaN, affine: null, persisted: false, failed });
         setPhase("result");
         return;
@@ -99,7 +110,7 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
         return;
       }
       const poor = o.errorPx > SAVE_LIMIT * vp.w;
-      const persisted = commit(o, !poor); // a poor calibration is used for this visit but not remembered
+      const persisted = commit(o, true); // always remembered, so it is not asked again; "Recalibrate" is there if it feels off
       setOutcome({ ...o, persisted, failed: 0, poor });
       setPhase("result");
     })();
@@ -115,7 +126,7 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
           <ul className="space-y-1 text-left text-stone-300">
             <li>• Sit 50–70 cm from the screen with your face well lit from the front (not a window behind you).</li>
             <li>• Keep your head fairly still; move your <b>eyes</b>, not your head.</li>
-            <li>• 13 dots appear. Look at a dot, <b>click it once</b>, and keep looking at it until it fills.</li>
+            <li>• 6 dots appear. Look at a dot, <b>click it once</b>, and keep looking at it until it fills.</li>
             <li>• It is saved in this browser, so you will normally only do this once. Esc cancels.</li>
           </ul>
           <p className="text-sm text-stone-400">Check the small camera box (bottom-left): your face should sit inside its frame.</p>
@@ -136,7 +147,7 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
         <div className="absolute left-1/2 top-[18%] -translate-x-1/2 text-center">
           <p className="text-lg font-medium">Dot {idx + 1} of {CALIBRATION_POINTS.length}</p>
           <p className="text-sm text-stone-400" aria-live="polite">
-            {collecting && progress < 0.15 && !source.faceFound() ? "Face not found: move into view" : collecting ? "Keep looking at the dot…" : idx > 0 && !source.faceFound() ? "Face not found: move into view" : "Look at the dot, then click it once"}
+            {collecting && progress < 0.15 && !source.faceFound() ? "Face not found: move into view" : collecting ? "Keep looking at the dot…" : hint ? hint : idx > 0 && !source.faceFound() ? "Face not found: move into view" : "Look at the dot, then click it once"}
           </p>
         </div>
         <button
@@ -182,9 +193,8 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
             </p>
             <p className="text-sm text-stone-400">
               {o.persisted ? "Saved in this browser only: you will not be asked again unless your setup changes."
-                : o.poor ? "Not saved because it is not accurate enough to reuse, so you will be asked again next time."
                 : "Could not save to this browser (storage blocked), so it will be asked again next time."}
-              {o.poor && " For better results: face a light source, sit closer, keep your head still, and recalibrate."}
+              {o.poor && " It is a bit rough: for better results face a light source, sit closer, keep your head still, and recalibrate."}
             </p>
           </>
         ) : (
@@ -201,7 +211,7 @@ export default function Calibration({ source, mode, commit, onFinish, onCancel, 
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           {o.ok && <button type="button" autoFocus onClick={onFinish} className="rounded-lg bg-amber-500 px-6 py-3 font-medium text-stone-950">Continue</button>}
           {!o.ok && <button type="button" autoFocus onClick={() => { setOutcome(null); setValIdx(0); setPhase("validate"); }} className="rounded-lg bg-amber-500 px-6 py-3 font-medium text-stone-950">Try the check again</button>}
-          <button type="button" onClick={() => { void source.clearTraining(); source.setCorrection(null); setIdx(0); setOutcome(null); setPhase("intro"); }} className="rounded-lg border border-stone-500 px-5 py-3">Recalibrate fully</button>
+          <button type="button" onClick={() => { void source.clearTraining(); source.setCorrection(null); setIdx(0); misses.current = []; setHint(""); setOutcome(null); setPhase("intro"); }} className="rounded-lg border border-stone-500 px-5 py-3">Recalibrate fully</button>
           {!hasSaved && !o.ok && <button type="button" onClick={onCancel} className="rounded-lg border border-stone-600 px-5 py-3">Cancel</button>}
         </div>
       </div>

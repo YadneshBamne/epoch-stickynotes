@@ -1,4 +1,3 @@
-import { qualityLabel } from "./calibrationMath";
 import { ageText } from "./calibrationStore";
 import type { Tracker, TrackerMode } from "./useTracker";
 
@@ -9,7 +8,6 @@ export default function TrackerBar({ tracker, mode, setMode, showMode }: {
   const { status, kind, saved, session, saveFailed, error } = tracker;
   const on = status === "on";
   const cal = saved?.meta;
-  const q = cal ? qualityLabel(cal.errorPx, window.innerWidth) : null;
   const btn = "rounded-md border border-stone-300 px-2.5 py-1 text-sm hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:hover:bg-stone-800";
 
   return (
@@ -29,11 +27,11 @@ export default function TrackerBar({ tracker, mode, setMode, showMode }: {
         <div className="flex flex-wrap items-center gap-2 text-stone-600 dark:text-stone-300">
           {cal ? (
             <>
-              <span>Saved calibration: ≈ {Math.round(cal.errorPx)} px ({q!.text}), {ageText(cal.savedAt)}{session ? " · checked this visit" : ""}</span>
+              <span>Setup saved {ageText(cal.savedAt)}: you will not be asked again{session ? "" : " unless your window size changes"}</span>
               <button type="button" className={btn} onClick={() => void tracker.forget()}>Forget it</button>
             </>
           ) : (
-            <span>No saved calibration: the first run asks you to calibrate once (≈ 1 min), then remembers it in this browser.</span>
+            <span>No saved setup yet: the first run asks you to follow 6 dots (about 12 seconds), then remembers it in this browser.</span>
           )}
         </div>
       )}

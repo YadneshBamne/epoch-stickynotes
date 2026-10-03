@@ -73,7 +73,7 @@ export function useTracker() {
     if (s && compatibility(s.meta, vp).ok) {
       if (!modelLoaded.current) { await src.setTraining(deserializeTraining(s.training)); modelLoaded.current = true; }
       src.setCorrection(s.affine);
-      return "check";
+      return "ready"; // trust the saved calibration: no re-check on every visit (the live tracker still offers "Quick check")
     }
     await src.clearTraining(); // start the model from nothing so old data cannot pollute the new calibration
     src.setCorrection(null);

@@ -134,9 +134,9 @@ export class OneEuro {
   reset() { this.x = null; this.t = null; this.dx = 0; }
 }
 
-/** Beyond this (as a fraction of screen width) a calibration is not remembered; beyond UNUSABLE it is rejected. */
+/** Beyond SAVE_LIMIT (as a fraction of screen width) a calibration is labelled rough; beyond UNUSABLE it is rejected and not saved. */
 export const SAVE_LIMIT = 0.09;
-export const UNUSABLE_LIMIT = 0.15;
+export const UNUSABLE_LIMIT = 0.25;
 
 export function qualityLabel(px: number, screenWidth: number): { text: string; level: "good" | "fair" | "poor" } {
   const f = px / screenWidth;

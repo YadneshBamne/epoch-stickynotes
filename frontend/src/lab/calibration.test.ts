@@ -175,7 +175,7 @@ describe("calibration storage", () => {
     expect(compatibility(meta, VP, now).ok).toBe(true);
     expect(compatibility(meta, { w: 1920 * 1.02, h: 1080 }, now).ok).toBe(true); // within tolerance
     expect(compatibility(meta, { w: 1280, h: 720 }, now)).toEqual({ ok: false, reason: "screen-changed" });
-    expect(compatibility(meta, VP, meta.savedAt + 31 * 24 * 3600_000)).toEqual({ ok: false, reason: "expired" });
+    expect(compatibility(meta, VP, meta.savedAt + 91 * 24 * 3600_000)).toEqual({ ok: false, reason: "expired" });
   });
 
   it("describes age in plain words", () => {

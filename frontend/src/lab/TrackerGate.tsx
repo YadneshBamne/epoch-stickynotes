@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import Calibration from "./Calibration";
+import EasyCalibration from "./EasyCalibration";
 import type { GazeSource } from "./gaze";
 import type { Plan, Tracker, TrackerMode } from "./useTracker";
 
@@ -9,8 +9,8 @@ const overlay = "fixed inset-0 z-50 flex flex-col items-center justify-center bg
  * Gets the tracker ready, asking for as little as possible:
  *   camera not running            -> start it (the first start loads the face model)
  *   fine within the last 15 min   -> nothing
- *   saved calibration still fits  -> 5-point quick check (also absorbs small changes in how you sit)
- *   otherwise                     -> full calibration, then saved for next time
+ *   saved calibration still fits  -> restored silently, nothing asked (a quick check stays available in the live tracker)
+ *   otherwise                     -> the easy 6-dot calibration (EasyCalibration), then saved for next time
  */
 export default function TrackerGate({ tracker, mode, force, onReady, onCancel }: {
   tracker: Tracker; mode: TrackerMode; force?: Plan; onReady: (s: GazeSource) => void; onCancel: () => void;
@@ -55,8 +55,5 @@ export default function TrackerGate({ tracker, mode, force, onReady, onCancel }:
       </div>
     );
   }
-  return (
-    <Calibration source={src} mode={plan === "check" ? "check" : "full"} hasSaved={!!tracker.saved}
-      commit={tracker.commit} onFinish={() => onReady(src)} onCancel={onCancel} />
-  );
+  return <EasyCalibration source={src} commit={tracker.commit} onFinish={() => onReady(src)} onCancel={onCancel} />;
 }
